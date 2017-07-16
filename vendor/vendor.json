@@ -1,0 +1,67 @@
+{
+	"comment": "",
+	"ignore": "test",
+	"package": [
+		{
+			"path": "code.google.com/p/goauth2/oauth",
+			"revision": ""
+		},
+		{
+			"path": "git.apache.org/thrift.git/lib/go/thrift",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "p/w29VzKmzJjShMi6EZrww4kJJI=",
+			"path": "github.com/NYTimes/gziphandler",
+			"revision": "56545f4a5d46df9a6648819d1664c3a03a13ffdb",
+			"revisionTime": "2017-06-23T19:55:20Z"
+		},
+		{
+			"checksumSHA1": "IkPM2QLv9urri7S49wzroQx9oXA=",
+			"path": "github.com/gorilla/context",
+			"revision": "08b5f424b9271eedf6f9f0ce86cb9396ed337a42",
+			"revisionTime": "2016-08-17T18:46:32Z"
+		},
+		{
+			"checksumSHA1": "qvsEhA+BntKV5nqjCARYL2gLSzo=",
+			"path": "github.com/gorilla/mux",
+			"revision": "ac112f7d75a0714af1bd86ab17749b31f7809640",
+			"revisionTime": "2017-07-03T15:07:09Z"
+		},
+		{
+			"checksumSHA1": "vfH5+pNVRHr7lRDYkpZfoJSOdMk=",
+			"path": "github.com/mrjones/oauth",
+			"revision": "3f67d9c274355678b2f9844b08d643e2f9213340",
+			"revisionTime": "2017-02-25T17:57:52Z"
+		},
+		{
+			"checksumSHA1": "hH19/2MG4X5Jay/B6NCJjj8I7xc=",
+			"path": "github.com/tgulacsi/picago",
+			"revision": "5a0a5816725086f973ec83cb3449da331896f6ee",
+			"revisionTime": "2017-03-28T08:33:13Z"
+		},
+		{
+			"checksumSHA1": "xBEGhVyp3rBe02zO8F1zJL+rgtg=",
+			"path": "github.com/twsiyuan/evernote-sdk-golang/edam",
+			"revision": "79ca37c749d99a3575eb50688d53f1f3925f7f2d",
+			"revisionTime": "2017-07-14T08:30:49Z"
+		},
+		{
+			"path": "github.com/twsiyuan/evernote-sdk-golang/edamuril",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "H307kgJWhNiIqqwhx7p7Z2mBWpM=",
+			"path": "github.com/twsiyuan/evernote-sdk-golang/edamutil",
+			"revision": "79ca37c749d99a3575eb50688d53f1f3925f7f2d",
+			"revisionTime": "2017-07-14T08:30:49Z"
+		},
+		{
+			"checksumSHA1": "9uWyNiuye96GgiDBXARIH9hQ0Hw=",
+			"path": "github.com/unrolled/render",
+			"revision": "a0ec58421ddf111bd7efd3b7087399ca7d5da2f1",
+			"revisionTime": "2017-07-14T21:48:54Z"
+		}
+	],
+	"rootPath": "github.com/twsiyuan/evernote-to-blogger"
+}

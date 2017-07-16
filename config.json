@@ -1,0 +1,10 @@
+{
+	"Addr": ":8080",
+	"EvernoteClientKey": "",
+	"EvernoteClientSecret": "",
+	"EvernoteAccessToken": "",
+	"GoogleAPIClientID": "",
+	"GoogleAPIClientSecret": "",
+	"GoogleAPIAccessToken": "",
+	"GoogleAPIRefreshToken": ""
+}
