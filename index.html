@@ -354,7 +354,7 @@
 				waitingDialog.show('Posting...', {dialogSize: 'sm', progressType: 'warning'});
 			          
 			           $.ajax({
-			                          url: '/blogger/api/blogs/' + this.blogId,
+			                          url: '/blogger/api/blogs/' + this.blogId + '/posts',
 			                          method: 'POST',
 			                 contentType: 'application/json; charset=utf-8',
 			                data: JSON.stringify(post),

@@ -120,7 +120,7 @@ func bloggerRouter(config *Config, r *mux.Router) (http.Handler, error) {
 	}))
 
 	s16002s780Regexp := regexp.MustCompile("(<img[^>]*)(\\/s1600\\/)([^>]*>)")
-	ar.HandleFunc("/blogs/{blogId:[^/]+}", authMiddleware(func(w http.ResponseWriter, req *http.Request) {
+	ar.HandleFunc("/blogs/{blogId:[^/]+}/posts", authMiddleware(func(w http.ResponseWriter, req *http.Request) {
 		blogId := mux.Vars(req)["blogId"]
 		post := struct {
 			Title     string
