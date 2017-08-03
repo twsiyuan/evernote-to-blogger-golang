@@ -1,615 +1,649 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html>
 <html>
-	<head>
+    <head>
 		<meta content='width=device-width, initial-scale=1.0' name='viewport'/>
-		<title>Everote To Blogger</title>
-		<link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'/>
+        <title>Everote To Blogger</title>
+        <link href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css' rel='stylesheet' type='text/css'/>
 		<link href='https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/css/bootstrap.min.css' rel='stylesheet' type='text/css'/>
-		<style>
-			#preview-html img{
-			max-width: 75%;
-			height: auto;
-			}
-		</style>
-		<script src='https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.2/require.min.js'></script>
+        <style>
+            #preview-html img{
+                max-width: 75%;
+                height: auto;
+            }
+        </style>
+        <script src='https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.2/require.min.js'></script>
 		<script type='text/javascript'>
-			//<![CDATA[
-				requirejs.config({
-					paths: { 
-						'jquery': ['https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min'],
-						'bootstrap': ['https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min'],
-			                  'vue': ['https://cdnjs.cloudflare.com/ajax/libs/vue/2.2.6/vue.min'],
-			                  'vuex': ['https://cdnjs.cloudflare.com/ajax/libs/vuex/2.2.1/vuex.min'],
-			                  'markdown-it': ['https://cdnjs.cloudflare.com/ajax/libs/markdown-it/8.2.2/markdown-it.min'],
-			                  'beautify': ['https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.6.8/beautify.min'],
-			                  'beautify-css': ['https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.6.8/beautify-css.min'],
-			                  'beautify-html': ['https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.6.8/beautify-html.min']
-					},
-					shim: {
-						'bootstrap' : ['jquery'],
-			                  'vuex' : ['vue'],
-			                  'beautify-css' : ['beautify'],
-			                  'beautify-html' : ['beautify-css']
-					}
-				});
-			          
-			          function handleCustomHTML(html){
-			
-			              html = html.replace(/<pre>/g, '<pre class="prettyprint">');
-			              html = html.replace(/<table>/g, '<table class="table table-striped">');
-			              
-			              html = '<div id="virtual_root">' + html + '</div>';
-			              var nodes = $.parseHTML(html);
-					
-			              $("img", nodes).each(function(index){
-			                  var title = $(this).attr("title");
-			                  if (typeof title == typeof undefined || title == false){
-			                      $(this).attr("title", $(this).attr("alt"));
-			                  }
-			                  
-			                  // to resource
-			                  var src = decodeURIComponent($(this).attr("src")).trim();
-			                  var matches = (/\!EN-RESOURCE\|([^!]+)\!(.*)/g).exec(src);
-			                  if (matches){
-			                      var name = encodeURIComponent(matches[2]);
-			                      if (name == ""){
-			                          name = matches[1];
-			                      }
-			                     name = name.replace(" ", "-").toLowerCase();
-			                     src = "/evernote/api/resources/" + matches[1] + "?name=" + encodeURIComponent(name);
-			                  }
-			                  
-			                  $(this).attr("src", src);
-			                  
-			                  container = $(this).parent();
-			                  if (container.tagName != "A"){
-			                      var div = $('<div class="img-box"></div>');
-			                      var link = $('<a href="' + src + '"></a>');
-			                      var p = $('<p>' + $(this).attr("alt") + '</p>');
-			                      
-			                      div.append(link);
-			                      if (index > 0){
-			                          // 首圖不加文字
-			                        div.append(p);
-			                      }
-			                 
-			                      div.insertAfter($(this));
-			                      link.append($(this));      
-			                  }
-			              });
-			              
-			              $("div", nodes).each(function(){
-			                  var div = $(this);
-			                  var parent = div.parent();
-			                  if (parent.prop("tagName") == "P"){
-			                      div.insertBefore(parent);
-			                  }
-			              });
-			              
-			               $("p", nodes).each(function(){
-			                   if ($(this).html().trim().length <= 0){
-			                       $(this).detach();
-			                   }
-			              });
-					
-					$("p:first", nodes).after("<!--more-->");
-			              
-			
-			              var parsed = $('<div></div>').append(nodes);
-			              html = parsed.children("#virtual_root").html().replace(/&nbsp;/g, ' ');
-			              html = html.replace(/<img([^>]+)\/?>/, '<img$1 />');
-			
-			              return html;
-			          }
-			
-			          require(['vue', 'bootstrap', 'markdown-it', 'beautify-html', 'jquery'], function(Vue, bootstrap, markdown, beautify, jQuery){
-			              
-									/**
-					 * Module for displaying "Waiting for..." dialog using Bootstrap
-					 *
-					 * @author Eugene Maslovich <ehpc@em42.ru>
-					 */
-					
-					var waitingDialog = waitingDialog || (function ($) {
-					    'use strict';
-					
-						// Creating modal dialog's DOM
-						var $dialog = $(
-							'<div class="modal fade" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true" style="padding-top:15%; overflow-y:visible;">' +
-							'<div class="modal-dialog modal-m">' +
-							'<div class="modal-content">' +
-								'<div class="modal-header"><h3 style="margin:0;"></h3></div>' +
-								'<div class="modal-body">' +
-									'<div class="progress progress-striped active" style="margin-bottom:0;"><div class="progress-bar" style="width: 100%"></div></div>' +
-								'</div>' +
-							'</div></div></div>');
-					
-						return {
-							/**
-							 * Opens our dialog
-							 * @param message Custom message
-							 * @param options Custom options:
-							 * 				  options.dialogSize - bootstrap postfix for dialog size, e.g. "sm", "m";
-							 * 				  options.progressType - bootstrap postfix for progress bar type, e.g. "success", "warning".
-							 */
-							show: function (message, options) {
-								// Assigning defaults
-								if (typeof options === 'undefined') {
-									options = {};
-								}
-								if (typeof message === 'undefined') {
-									message = 'Loading';
-								}
-								var settings = $.extend({
-									dialogSize: 'm',
-									progressType: '',
-									onHide: null // This callback runs after the dialog was hidden
-								}, options);
-					
-								// Configuring dialog
-								$dialog.find('.modal-dialog').attr('class', 'modal-dialog').addClass('modal-' + settings.dialogSize);
-								$dialog.find('.progress-bar').attr('class', 'progress-bar');
-								if (settings.progressType) {
-									$dialog.find('.progress-bar').addClass('progress-bar-' + settings.progressType);
-								}
-								$dialog.find('h3').text(message);
-								// Adding callbacks
-								if (typeof settings.onHide === 'function') {
-									$dialog.off('hidden.bs.modal').on('hidden.bs.modal', function (e) {
-										settings.onHide.call($dialog);
-									});
-								}
-								// Opening dialog
-								$dialog.modal();
-							},
-							/**
-							 * Closes dialog
-							 */
-							hide: function () {
-								$dialog.modal('hide');
+		//<![CDATA[
+			requirejs.config({
+				paths: { 
+					'jquery': ['https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min'],
+					'bootstrap': ['https://cdnjs.cloudflare.com/ajax/libs/twitter-bootstrap/3.3.7/js/bootstrap.min'],
+                    'vue': ['https://cdnjs.cloudflare.com/ajax/libs/vue/2.2.6/vue.min'],
+                    'vuex': ['https://cdnjs.cloudflare.com/ajax/libs/vuex/2.2.1/vuex.min'],
+                    'markdown-it': ['https://cdnjs.cloudflare.com/ajax/libs/markdown-it/8.2.2/markdown-it.min'],
+                    'beautify': ['https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.6.8/beautify.min'],
+                    'beautify-css': ['https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.6.8/beautify-css.min'],
+                    'beautify-html': ['https://cdnjs.cloudflare.com/ajax/libs/js-beautify/1.6.8/beautify-html.min']
+				},
+				shim: {
+					'bootstrap' : ['jquery'],
+                    'vuex' : ['vue'],
+                    'beautify-css' : ['beautify'],
+                    'beautify-html' : ['beautify-css']
+				}
+			});
+            
+            function handleCustomHTML(html){
+
+                html = html.replace(/<pre>/g, '<pre class="prettyprint">');
+                html = html.replace(/<table>/g, '<table class="table table-striped">');
+                
+                html = '<div id="virtual_root">' + html + '</div>';
+                var nodes = $.parseHTML(html);
+				
+                $("img", nodes).each(function(index){
+                    var title = $(this).attr("title");
+                    if (typeof title == typeof undefined || title == false){
+                        $(this).attr("title", $(this).attr("alt"));
+                    }
+                    
+                    // to resource
+                    var src = decodeURIComponent($(this).attr("src")).trim();
+                    var matches = (/\!EN-RESOURCE\|([^!]+)\!(.*)/g).exec(src);
+                    if (matches){
+                        var name = encodeURIComponent(matches[2]);
+                        if (name == ""){
+                            name = matches[1];
+                        }
+                       name = name.replace(" ", "-").toLowerCase();
+                       src = "/evernote/api/resources/" + matches[1] + "?name=" + encodeURIComponent(name);
+                    }
+                    
+                    $(this).attr("src", src);
+                    
+                    container = $(this).parent();
+                    if (container.tagName != "A"){
+                        var div = $('<div class="img-box"></div>');
+                        var link = $('<a href="' + src + '"></a>');
+                        var p = $('<p>' + $(this).attr("alt") + '</p>');
+                        
+                        div.append(link);
+                        if (index > 0){
+                            // 首圖不加文字
+                          div.append(p);
+                        }
+                   
+                        div.insertAfter($(this));
+                        link.append($(this));      
+                    }
+                });
+                
+                $("div", nodes).each(function(){
+                    var div = $(this);
+                    var parent = div.parent();
+                    if (parent.prop("tagName") == "P"){
+                        div.insertBefore(parent);
+                    }
+                });
+                
+                 $("p", nodes).each(function(){
+                     if ($(this).html().trim().length <= 0){
+                         $(this).detach();
+                     }
+                });
+
+				// Image-box sibling
+				var tempList = new Array();
+				var dolist = new Array();
+
+				$("div.img-box", nodes).each(function(){
+                    var div = $(this);
+                    var next = div.next();
+                    if (next.prop("tagName") == "DIV" && next.prop("class") == "img-box"){
+					    if (tempList.indexOf(div) < 0 || tempList.indexOf(next) < 0)
+						{
+							tempList.push(div);
+							tempList.push(next);
+							dolist.push(div);
+						}
+                    }
+                });
+
+				$.each(dolist, function(index, value){
+					var v1 = value;
+					var v2 = value.next();
+
+					var p = $('<div class="row"></div>');
+					var p1 = $('<div class="col-md-6 col-xs-6"></div>');
+					var p2 = $('<div class="col-md-6 col-xs-6"></div>');
+
+					p.insertBefore(v1);
+					p.append(p1).append(p2);
+					p1.append(v1);
+					p2.append(v2);
+				})
+				
+				$("p:first", nodes).after("<!--more-->");
+                
+
+                var parsed = $('<div></div>').append(nodes);
+                html = parsed.children("#virtual_root").html().replace(/&nbsp;/g, ' ');
+                html = html.replace(/<img([^>]+)\/?>/, '<img$1 />');
+
+                return html;
+            }
+ 
+            require(['vue', 'bootstrap', 'markdown-it', 'beautify-html', 'jquery'], function(Vue, bootstrap, markdown, beautify, jQuery){
+                
+								/**
+				 * Module for displaying "Waiting for..." dialog using Bootstrap
+				 *
+				 * @author Eugene Maslovich <ehpc@em42.ru>
+				 */
+				
+				var waitingDialog = waitingDialog || (function ($) {
+				    'use strict';
+				
+					// Creating modal dialog's DOM
+					var $dialog = $(
+						'<div class="modal fade" data-backdrop="static" data-keyboard="false" tabindex="-1" role="dialog" aria-hidden="true" style="padding-top:15%; overflow-y:visible;">' +
+						'<div class="modal-dialog modal-m">' +
+						'<div class="modal-content">' +
+							'<div class="modal-header"><h3 style="margin:0;"></h3></div>' +
+							'<div class="modal-body">' +
+								'<div class="progress progress-striped active" style="margin-bottom:0;"><div class="progress-bar" style="width: 100%"></div></div>' +
+							'</div>' +
+						'</div></div></div>');
+				
+					return {
+						/**
+						 * Opens our dialog
+						 * @param message Custom message
+						 * @param options Custom options:
+						 * 				  options.dialogSize - bootstrap postfix for dialog size, e.g. "sm", "m";
+						 * 				  options.progressType - bootstrap postfix for progress bar type, e.g. "success", "warning".
+						 */
+						show: function (message, options) {
+							// Assigning defaults
+							if (typeof options === 'undefined') {
+								options = {};
 							}
-						};
-					
-					})(jQuery);
-					
-			              var md = new markdown({
-					  html: true,
-					  linkify: true,
-					  typographer: true,
-					});
-			              var beautify_html = beautify.html_beautify;
-			               var options = {
-			                 "indent_size": 2,
-			                 "html": {
-			                  "end_with_newline": true,
-			                  "js": {
-			                   "indent_size": 2
-			                  },
-			                  "css": {
-			                   "indent_size": 2
-			                  }
-			                 },
-			                 "css": {
-			                  "indent_size": 1
-			                 },
-			                 "js": {
-			                    "preserve-newlines": true
-			                 }
-			              };
-			              
-			              
-			              Vue.component('note-item', {
-			                template: `
-			                  <a href="#" class="list-group-item list-group-item-action flex-column align-items-start active" v-on:click="$emit('select')" v-if="selected">
-			                      <div>{{ title }} <i class="fa fa-spinner fa-spin" v-if="(loading == true)"/> </div>
-			                  </a>
-			                  <a href="#" class="list-group-item list-group-item-action flex-column align-items-start" v-on:click="$emit('select')" v-else>
-			                      {{ title }}
-			                  </a>
-			                `,
-			                props: ['title', 'loading', 'selected']
-			              });
-			              
-			              Vue.component('notebook-item', {
-			                template: `<li><a href="#" v-on:click="$emit('select', this)">{{ title }}</a></li>`,
-			                props: ['title'],
-			              });
-			
-			            var editModes = new Vue({
-			                  el: '#editmode-tabs',
-			                  components: {
-			                     'editmode-item': {
-			                       template: `<li v-if="selected" class="active"><a href="#" v-on:click="$emit('select')">{{mode}}</a></li><li v-else><a href="#" v-on:click="$emit('select')">{{mode}}</a></li>`,
-			                       props: ['mode', 'selected'],    
-			                     }
-			                  },
-			                  methods: {
-			                        select: function(mode){
-			                          this.mode = mode;
-			                        }
-			                  },
-			                 mounted: function(){
-			                         this.mode = localStorage.getItem("editMode");
-			                      },
-			                  computed:{
-			                      mode: {
-			                          get: function(){
-			                              for (var i = 0; i < this.$children.length; i++){
-			                                  var item = this.$children[i];
-			                                  if (item.selected){
-			                                      return item.mode;
-			                                  }
-			                              }
-			                              return this.$children[0].mode;
-			                          },
-			                          set: function(value)
-			                          {
-			                              var selected = false;
-			                              for (var i = 0; i < this.$children.length; i++){
-			                                  var item = this.$children[i];
-			                                  item.selected = item.mode == value;
-			                                  if (item.selected){
-			                                      selected = true;
-			                                      localStorage.setItem("editMode", value);
-			                                  }
-			                                  
-			                              }
-			                              if (!selected){
-			                                  this.$children[0].selected = true;
-			                              }
-			                              this.$emit('changed');
-			                          }
-			                      }
-			                  }
-			              });
-			              
-			
-			              var resultEditor = new Vue({
-			                  el: '#result-editor',
-			                  data: {
-			                      guid: "",
-			                      markdown_raw: "",
-			                      html_raw: "",
-			                      markdown_dirty: false,
-			                      mode: "",
-			                      titie: ""
-			                  },
-			                  methods: {
-			                  },
-			                  computed:{
-			                      isEditMarkdown: function(){
-			                        return this.mode == "Markdown";
-			                      },
-			                      isEditHTML: function(){
-			                          return this.mode == "HTML";
-			                      },
-			                      isPreview: function(){
-			                          return !this.isEditMarkdown && !this.isEditHTML;
-			                      },
-			                      markdown:{
-			                          get: function(){
-			                              return this.markdown_raw;
-			                          },
-			                          set: function(val){
-			                              this.markdown_raw = val;
-			                              this.markdown_dirty = true;
-			                          }
-			                      },
-			                      html: {
-			                          get: function(){
-			                              if (this.markdown_dirty){
-			                                  this.markdown_dirty = false;
-			                                  var html = md.render(this.markdown_raw);
-			                                  
-			                                  // TODO: CUSTOM-HTML-HANDLE
-			                                  html = handleCustomHTML(html);
-			                                  
-			                                  var beauty = beautify_html(html, options);
-			                                  this.html_raw = beauty;
-			                                  
-			                              }
-			                              return this.html_raw;
-			                          },
-			                          set: function(val){
-			                              this.html_raw = val;
-			                          }
-			                      }
-			                  },
-			                  mounted: function(){
-			                      var self = this;
-			                    editModes.$on('changed', function(){
-			                          self.mode = editModes.mode;
-			                        })
-			                      
-			                      this.mode = editModes.mode;
-			                  }
-			              });
-			              
-			              
-			              var publishSettings = new Vue({
-			                  el: '#publish-settings',
-			                  data:{
-			                      blogId:"",
-			                      blogs:[],
-			                      png2jpeg: localStorage.getItem("png2jpeg") == "true"
-			                  },
-			                  watch:{
-			                      selected:function(val){
-			                          localStorage.setItem("publishBlog", val);
-			                      },
-			                      png2jpeg:function(val){
-			                          localStorage.setItem("png2jpeg", val);
-			                      }
-			                  },
-			  methods:{
-			      publish:function(event){
-			
-			          var post = {
-			              Title: resultEditor.title,
-			              Content: resultEditor.html,
-			              PngToJpeg: this.png2jpeg
-			          }
-			
-				waitingDialog.show('Posting...', {dialogSize: 'sm', progressType: 'warning'});
-			          
-			           $.ajax({
-			                          url: '/blogger/api/blogs/' + this.blogId + '/posts',
-			                          method: 'POST',
-			                 contentType: 'application/json; charset=utf-8',
-			                data: JSON.stringify(post),
-			                          success: function (data) {
-									waitingDialog.hide();
-			                          },
-			                          error: function (error) {
-									waitingDialog.hide();
-			                              alert("Publish failed, response: " + error);                            
-			                          }
-			                      });
-			          
-			          
-			       
-			      }
-			  },
-			                  mounted: function(){
-			                      var self = this;
-			                      
-			                        $.ajax({
-			                          url: '/blogger/api/blogs/',
-			                          method: 'GET',
-			                          success: function (data) {
-			                             self.blogs = data;
-			                              
-			                              if (data && data.length > 0){
-			                                  self.blogId = data[0].Id;
-			                                   var l = localStorage.getItem("publishBlog");
-			                                  for (var i = 0; i < data.length; i++){
-			                                      if (data[i].Id == l){
-			                                            self.blogId =l;
-			                                          break;
-			                                      }
-			                                  }
-			                              }        
-			                          },
-			                          error: function (error) {
-			                              console.log(error);                                
-			                          }
-			                      });
-			                  }
-			              });
-			              
-			              var notes = new Vue({
-			                el: '#notes-list',
-			                data: {
-			                  notes: [],
-			                  value: null,
-			                },
-			                methods: {
-			                    select: function(note){
-			                        for (var itr in this.notes){
-			                            Vue.set(this.notes[itr], 'IsSelected', this.notes[itr] == note);
-			                        }
-			
-			                        Vue.set(note, 'IsLoading', true);
-			                        var done_callback = function(guid, data){
-			                             Vue.set(note, 'IsLoading', false);
-			                             resultEditor.guid = guid;
-			                             resultEditor.markdown = data.Content;
-			                             resultEditor.title = data.Title;
-			                        };
-			
-			                        $.ajax({
-			                          url: '/evernote/api/notes/' + note.GUID,
-			                          method: 'GET',
-			                          success: function (data) {
-			                              if (done_callback){
-			                                  done_callback(note.GUID, data);
-			                              }
-			                          },
-			                          error: function (error) {
-			                              console.log(error);                                
-			                              if (done_callback){
-			                                  done_callback('', '');
-			                              }
-			                          }
-			                      });
-			                    },
-			                    
-			                    refresh: function (notebook_guid, done_callback) {
-			                      var self = this;
-			                      $.ajax({
-			                          url: '/evernote/api/notebooks/' + notebook_guid,
-			                          method: 'GET',
-			                          success: function (data) {
-			                              self.notes = data;
-			                              if (self.notes.length > 0){
-			                                  self.select(self.notes[0]);
-			                              }
-			                              if (done_callback){
-			                                  done_callback();
-			                              }
-			                          },
-			                          error: function (error) {
-			                              console.log(error);
-			                              if (done_callback){
-			                                  done_callback();
-			                              }
-			                          }
-			                      });
-			                    }
-			                }
-			              })
-			              
-			              var notebooks = new Vue({
-			                el: '#notebooks-list',
-			                data: {
-			                  notebooks: [],
-			                  value: null,
-			                    loading: false
-			                },
-			                methods: {
-			                    select: function(notebook){
-			                        this.selectedNoteGUID = notebook.GUID;
-			                    },
-			                    refresh: function () {
-			                      var self = this;
-			                      $.ajax({
-			                          url: '/evernote/api/notebooks',
-			                          method: 'GET',
-			                          success: function (data) {
-			                              self.notebooks = data;
-			                              
-			                              var defaultValue = this.value;
-			                              if (defaultValue == null){
-			                                  defaultValue = localStorage.getItem("selectedNotebook");
-			                              }
-			                              
-			                              self.selectedNoteGUID = defaultValue;
-			                          },
-			                          error: function (error) {
-			                              console.log(error);
-			                          }
-			                      });
-			                    }
-			                },
-			                  watch:{
-			                      value: function(val, oldVal){
-			                          var self = this;
-			                          localStorage.setItem("selectedNotebook", val);
-			                          self.loading = true;
-			                          notes.refresh(val, function(){
-			                                 self.loading = false;
-			                        });
-			                      }
-			                  },
-			                computed: {
-			                  selectedIndex: 
-			                    {
-			                        get: function(){
-			                         for (var i = 0; i < this.notebooks.length; i++){
-			                             if (this.notebooks[i].GUID == this.value){
-			                                 return i;
-			                             }
-			                         } 
-			                          return -1;
-			                        },
-			                        set: function(i){
-			                            this.value = this.notebooks[i].GUID;
-			                        }
-			                    },
-			                    selectedNoteName: function(){
-			                        var i = this.selectedIndex;
-			                        if (i<0){
-			                            return "";
-			                        }
-			                        return this.notebooks[i].Name;
-			                    },
-			                    selectedNoteGUID: {
-			                        get:function(){
-			                        return this.value;
-			                      },
-			                        set:function(guid){
-			                            for (var i = 0; i < this.notebooks.length; i++){
-			                             if (this.notebooks[i].GUID == guid){
-			                                 this.value = guid;
-			                                 break;
-			                             }
-			                            } 
-			                        }
-			                    }
-			                },
-			                mounted: function () {
-			                  this.refresh();
-			                }
-			              });
-			              
+							if (typeof message === 'undefined') {
+								message = 'Loading';
+							}
+							var settings = $.extend({
+								dialogSize: 'm',
+								progressType: '',
+								onHide: null // This callback runs after the dialog was hidden
+							}, options);
+				
+							// Configuring dialog
+							$dialog.find('.modal-dialog').attr('class', 'modal-dialog').addClass('modal-' + settings.dialogSize);
+							$dialog.find('.progress-bar').attr('class', 'progress-bar');
+							if (settings.progressType) {
+								$dialog.find('.progress-bar').addClass('progress-bar-' + settings.progressType);
+							}
+							$dialog.find('h3').text(message);
+							// Adding callbacks
+							if (typeof settings.onHide === 'function') {
+								$dialog.off('hidden.bs.modal').on('hidden.bs.modal', function (e) {
+									settings.onHide.call($dialog);
+								});
+							}
+							// Opening dialog
+							$dialog.modal();
+						},
+						/**
+						 * Closes dialog
+						 */
+						hide: function () {
+							$dialog.modal('hide');
+						}
+					};
+				
+				})(jQuery);
+				
+                var md = new markdown({
+				  html: true,
+				  linkify: true,
+				  typographer: true,
 				});
-			//]]>
+                var beautify_html = beautify.html_beautify;
+                 var options = {
+                   "indent_size": 2,
+                   "html": {
+                    "end_with_newline": true,
+                    "js": {
+                     "indent_size": 2
+                    },
+                    "css": {
+                     "indent_size": 2
+                    }
+                   },
+                   "css": {
+                    "indent_size": 1
+                   },
+                   "js": {
+                      "preserve-newlines": true
+                   }
+                };
+                
+                
+                Vue.component('note-item', {
+                  template: `
+                    <a href="#" class="list-group-item list-group-item-action flex-column align-items-start active" v-on:click="$emit('select')" v-if="selected">
+                        <div>{{ title }} <i class="fa fa-spinner fa-spin" v-if="(loading == true)"/> </div>
+                    </a>
+                    <a href="#" class="list-group-item list-group-item-action flex-column align-items-start" v-on:click="$emit('select')" v-else>
+                        {{ title }}
+                    </a>
+                  `,
+                  props: ['title', 'loading', 'selected']
+                });
+                
+                Vue.component('notebook-item', {
+                  template: `<li><a href="#" v-on:click="$emit('select', this)">{{ title }}</a></li>`,
+                  props: ['title'],
+                });
+  
+              var editModes = new Vue({
+                    el: '#editmode-tabs',
+                    components: {
+                       'editmode-item': {
+                         template: `<li v-if="selected" class="active"><a href="#" v-on:click="$emit('select')">{{mode}}</a></li><li v-else><a href="#" v-on:click="$emit('select')">{{mode}}</a></li>`,
+                         props: ['mode', 'selected'],    
+                       }
+                    },
+                    methods: {
+                          select: function(mode){
+                            this.mode = mode;
+                          }
+                    },
+                   mounted: function(){
+                           this.mode = localStorage.getItem("editMode");
+                        },
+                    computed:{
+                        mode: {
+                            get: function(){
+                                for (var i = 0; i < this.$children.length; i++){
+                                    var item = this.$children[i];
+                                    if (item.selected){
+                                        return item.mode;
+                                    }
+                                }
+                                return this.$children[0].mode;
+                            },
+                            set: function(value)
+                            {
+                                var selected = false;
+                                for (var i = 0; i < this.$children.length; i++){
+                                    var item = this.$children[i];
+                                    item.selected = item.mode == value;
+                                    if (item.selected){
+                                        selected = true;
+                                        localStorage.setItem("editMode", value);
+                                    }
+                                    
+                                }
+                                if (!selected){
+                                    this.$children[0].selected = true;
+                                }
+                                this.$emit('changed');
+                            }
+                        }
+                    }
+                });
+                
+
+                var resultEditor = new Vue({
+                    el: '#result-editor',
+                    data: {
+                        guid: "",
+                        markdown_raw: "",
+                        html_raw: "",
+                        markdown_dirty: false,
+                        mode: "",
+                        titie: ""
+                    },
+                    methods: {
+                    },
+                    computed:{
+                        isEditMarkdown: function(){
+                          return this.mode == "Markdown";
+                        },
+                        isEditHTML: function(){
+                            return this.mode == "HTML";
+                        },
+                        isPreview: function(){
+                            return !this.isEditMarkdown && !this.isEditHTML;
+                        },
+                        markdown:{
+                            get: function(){
+                                return this.markdown_raw;
+                            },
+                            set: function(val){
+                                this.markdown_raw = val;
+                                this.markdown_dirty = true;
+                            }
+                        },
+                        html: {
+                            get: function(){
+                                if (this.markdown_dirty){
+                                    this.markdown_dirty = false;
+                                    var html = md.render(this.markdown_raw);
+                                    
+                                    // TODO: CUSTOM-HTML-HANDLE
+                                    html = handleCustomHTML(html);
+                                    
+                                    var beauty = beautify_html(html, options);
+                                    this.html_raw = beauty;
+                                    
+                                }
+                                return this.html_raw;
+                            },
+                            set: function(val){
+                                this.html_raw = val;
+                            }
+                        }
+                    },
+                    mounted: function(){
+                        var self = this;
+                      editModes.$on('changed', function(){
+                            self.mode = editModes.mode;
+                          })
+                        
+                        this.mode = editModes.mode;
+                    }
+                });
+                
+                
+                var publishSettings = new Vue({
+                    el: '#publish-settings',
+                    data:{
+                        blogId:"",
+                        blogs:[],
+                        png2jpeg: localStorage.getItem("png2jpeg") == "true"
+                    },
+                    watch:{
+                        selected:function(val){
+                            localStorage.setItem("publishBlog", val);
+                        },
+                        png2jpeg:function(val){
+                            localStorage.setItem("png2jpeg", val);
+                        }
+                    },
+    methods:{
+        publish:function(event){
+  
+            var post = {
+                Title: resultEditor.title,
+                Content: resultEditor.html,
+                PngToJpeg: this.png2jpeg
+            }
+  
+			waitingDialog.show('Posting...', {dialogSize: 'sm', progressType: 'warning'});
+            
+             $.ajax({
+                            url: '/blogger/api/blogs/' + this.blogId + '/posts',
+                            method: 'POST',
+                   contentType: 'application/json; charset=utf-8',
+                  data: JSON.stringify(post),
+                            success: function (data) {
+								waitingDialog.hide();
+                            },
+                            error: function (error) {
+								waitingDialog.hide();
+                                alert("Publish failed, response: " + error);                            
+                            }
+                        });
+            
+            
+         
+        }
+    },
+                    mounted: function(){
+                        var self = this;
+                        
+                          $.ajax({
+                            url: '/blogger/api/blogs/',
+                            method: 'GET',
+                            success: function (data) {
+                               self.blogs = data;
+                                
+                                if (data && data.length > 0){
+                                    self.blogId = data[0].Id;
+                                     var l = localStorage.getItem("publishBlog");
+                                    for (var i = 0; i < data.length; i++){
+                                        if (data[i].Id == l){
+                                              self.blogId =l;
+                                            break;
+                                        }
+                                    }
+                                }        
+                            },
+                            error: function (error) {
+                                console.log(error);                                
+                            }
+                        });
+                    }
+                });
+                
+                var notes = new Vue({
+                  el: '#notes-list',
+                  data: {
+                    notes: [],
+                    value: null,
+                  },
+                  methods: {
+                      select: function(note){
+                          for (var itr in this.notes){
+                              Vue.set(this.notes[itr], 'IsSelected', this.notes[itr] == note);
+                          }
+
+                          Vue.set(note, 'IsLoading', true);
+                          var done_callback = function(guid, data){
+                               Vue.set(note, 'IsLoading', false);
+                               resultEditor.guid = guid;
+                               resultEditor.markdown = data.Content;
+                               resultEditor.title = data.Title;
+                          };
+
+                          $.ajax({
+                            url: '/evernote/api/notes/' + note.GUID,
+                            method: 'GET',
+                            success: function (data) {
+                                if (done_callback){
+                                    done_callback(note.GUID, data);
+                                }
+                            },
+                            error: function (error) {
+                                console.log(error);                                
+                                if (done_callback){
+                                    done_callback('', '');
+                                }
+                            }
+                        });
+                      },
+                      
+                      refresh: function (notebook_guid, done_callback) {
+                        var self = this;
+                        $.ajax({
+                            url: '/evernote/api/notebooks/' + notebook_guid,
+                            method: 'GET',
+                            success: function (data) {
+                                self.notes = data;
+                                if (self.notes.length > 0){
+                                    self.select(self.notes[0]);
+                                }
+                                if (done_callback){
+                                    done_callback();
+                                }
+                            },
+                            error: function (error) {
+                                console.log(error);
+                                if (done_callback){
+                                    done_callback();
+                                }
+                            }
+                        });
+                      }
+                  }
+                })
+                
+                var notebooks = new Vue({
+                  el: '#notebooks-list',
+                  data: {
+                    notebooks: [],
+                    value: null,
+                      loading: false
+                  },
+                  methods: {
+                      select: function(notebook){
+                          this.selectedNoteGUID = notebook.GUID;
+                      },
+                      refresh: function () {
+                        var self = this;
+                        $.ajax({
+                            url: '/evernote/api/notebooks',
+                            method: 'GET',
+                            success: function (data) {
+                                self.notebooks = data;
+                                
+                                var defaultValue = this.value;
+                                if (defaultValue == null){
+                                    defaultValue = localStorage.getItem("selectedNotebook");
+                                }
+                                
+                                self.selectedNoteGUID = defaultValue;
+                            },
+                            error: function (error) {
+                                console.log(error);
+                            }
+                        });
+                      }
+                  },
+                    watch:{
+                        value: function(val, oldVal){
+                            var self = this;
+                            localStorage.setItem("selectedNotebook", val);
+                            self.loading = true;
+                            notes.refresh(val, function(){
+                                   self.loading = false;
+                          });
+                        }
+                    },
+                  computed: {
+                    selectedIndex: 
+                      {
+                          get: function(){
+                           for (var i = 0; i < this.notebooks.length; i++){
+                               if (this.notebooks[i].GUID == this.value){
+                                   return i;
+                               }
+                           } 
+                            return -1;
+                          },
+                          set: function(i){
+                              this.value = this.notebooks[i].GUID;
+                          }
+                      },
+                      selectedNoteName: function(){
+                          var i = this.selectedIndex;
+                          if (i<0){
+                              return "";
+                          }
+                          return this.notebooks[i].Name;
+                      },
+                      selectedNoteGUID: {
+                          get:function(){
+                          return this.value;
+                        },
+                          set:function(guid){
+                              for (var i = 0; i < this.notebooks.length; i++){
+                               if (this.notebooks[i].GUID == guid){
+                                   this.value = guid;
+                                   break;
+                               }
+                              } 
+                          }
+                      }
+                  },
+                  mounted: function () {
+                    this.refresh();
+                  }
+                });
+                
+			});
+		//]]>
 		</script>
 	</head>
 	<body>
-		<div class="container-fluid">
-			<div class="row">
-				<div class="col-md-3">
-					<div class="btn-group" id="notebooks-list" style="width:100%;">
-						<button type="button" class="btn btn-success dropdown-toggle" style="width:100%;" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{ selectedNoteName }}  <i class="fa fa-spinner fa-spin" v-if="(loading == true)"></i></button>
-						<ul class="dropdown-menu" style="width:100%;">
-							<notebook-item
-								is="notebook-item"
-								v-for="(notebook, index) in notebooks"
-								v-bind:key="notebook.GUID"
-								v-bind:title="notebook.Name"
-								v-on:select="select(notebook)"
-								/>
-						</ul>
-					</div>
-					<div id="notes-list" class="list-group">
-						<note-item
-							is="note-item"
-							v-for="(note, index) in notes"
-							v-bind:key="note.GUID"
-							v-bind:title="note.Name"
-							v-bind:loading="note.IsLoading"
-							v-bind:selected="note.IsSelected"
-							v-on:select="select(note)"
-							/>
-					</div>
-				</div>
-				<div class="col-md-9">
-					<div class="row">
-						<div class="pull-left">
-							<ul class="nav nav-pills" id="editmode-tabs">
-								<editmode-item mode="Markdown" v-on:select="select('Markdown')"></editmode-item>
-								<editmode-item mode="HTML" v-on:select="select('HTML')"></editmode-item>
-								<editmode-item mode="Preview" v-on:select="select('Preview')"></editmode-item>
-							</ul>
-						</div>
-						<div class="pull-right">
-							<div id="publish-settings" class="row">
-								<div class="form-group">
-									<label for="sel1">Blog:</label>
-									<select  v-model="blogId">
-										<option v-for="(blog, index) in blogs" v-bind:value="blog.Id">{{ blog.Name }}</option>
-									</select>
-								</div>
-								<div class="checkbox form-group">
-									<label><input type="checkbox" v-model="png2jpeg" value="true"/>Png to Jpeg</label>
-								</div>
-								<div class="form-group">
-									<button type="button" class="btn btn-primary" v-on:click="publish">Publish as Draft</button>
-								</div>
-							</div>
-						</div>
-					</div>
-					<div class="row">
-						<div id="result-editor">
-							<textarea class="form-control" wrap="on" autocapitalize="off" spellcheck="false" style="height:700px;overflow:auto;" v-if="isEditMarkdown" v-model="markdown"></textarea>
-							<textarea class="form-control" wrap="on" autocapitalize="off" spellcheck="false" style="height:700px;overflow:auto;" v-if="isEditHTML" v-model="html"></textarea>
-							<div id="preview-html" v-if="isPreview" v-html="html"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-		</div>
-	</body>
+        <div class="container-fluid">
+            <div class="row">
+                <div class="col-md-3">
+                    <div class="btn-group" id="notebooks-list" style="width:100%;">
+                        <button type="button" class="btn btn-success dropdown-toggle" style="width:100%;" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{ selectedNoteName }}  <i class="fa fa-spinner fa-spin" v-if="(loading == true)"></i></button>
+                        <ul class="dropdown-menu" style="width:100%;">
+                            <notebook-item
+                              is="notebook-item"
+                              v-for="(notebook, index) in notebooks"
+                              v-bind:key="notebook.GUID"
+                              v-bind:title="notebook.Name"
+                              v-on:select="select(notebook)"
+                            />
+                        </ul>
+                    </div>
+                    <div id="notes-list" class="list-group">
+                        <note-item
+                          is="note-item"
+                          v-for="(note, index) in notes"
+                          v-bind:key="note.GUID"
+                          v-bind:title="note.Name"
+                          v-bind:loading="note.IsLoading"
+                          v-bind:selected="note.IsSelected"
+                          v-on:select="select(note)"
+                        />
+                    </div>
+                </div>
+                 <div class="col-md-9">
+                     <div class="row">
+                        <div class="pull-left">
+                            <ul class="nav nav-pills" id="editmode-tabs">
+                                <editmode-item mode="Markdown" v-on:select="select('Markdown')"></editmode-item>
+                                <editmode-item mode="HTML" v-on:select="select('HTML')"></editmode-item>
+                                <editmode-item mode="Preview" v-on:select="select('Preview')"></editmode-item>
+                            </ul>
+                         </div>
+                         <div class="pull-right">
+                             <div id="publish-settings" class="row">
+                                 <div class="form-group">
+                                     <label for="sel1">Blog:</label>
+                                     <select  v-model="blogId">
+                                         <option v-for="(blog, index) in blogs" v-bind:value="blog.Id">{{ blog.Name }}</option>
+                                     </select>   
+                                </div>
+                                   <div class="checkbox form-group">
+                                         <label><input type="checkbox" v-model="png2jpeg" value="true"/>Png to Jpeg</label>
+                                     </div>
+                                 <div class="form-group">
+                                     <button type="button" class="btn btn-primary" v-on:click="publish">Publish as Draft</button>
+                                 </div>
+                         </div>
+                         </div>
+                     </div>
+                     <div class="row">
+                         <div id="result-editor">
+                            <textarea class="form-control" wrap="on" autocapitalize="off" spellcheck="false" style="height:700px;overflow:auto;" v-if="isEditMarkdown" v-model="markdown"></textarea>
+                             
+                             <textarea class="form-control" wrap="on" autocapitalize="off" spellcheck="false" style="height:700px;overflow:auto;" v-if="isEditHTML" v-model="html"></textarea>
+                             
+                             <div id="preview-html" v-if="isPreview" v-html="html"></div>
+                         </div>
+                     </div>
+                    
+                </div>
+            </div>
+        </div>
+    </body>
 </html>
