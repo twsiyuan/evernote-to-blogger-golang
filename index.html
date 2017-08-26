@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="UTF-8" ?>
 <!DOCTYPE html>
 <html>
     <head>
@@ -33,6 +32,15 @@
                     'beautify-html' : ['beautify-css']
 				}
 			});
+			
+			function isDomExistInArray(arr, dom){
+			    for (var i = 0; i < arr.length; i++){
+				    if (arr[i] == dom){
+					    return true;
+					}
+				}
+				return false;
+			}
             
             function handleCustomHTML(html){
 
@@ -56,7 +64,7 @@
                         if (name == ""){
                             name = matches[1];
                         }
-                       name = name.replace(" ", "-").toLowerCase();
+                       name = name.trim().replace(" ", "-").toLowerCase();
                        src = "/evernote/api/resources/" + matches[1] + "?name=" + encodeURIComponent(name);
                     }
                     
@@ -101,18 +109,21 @@
                     var div = $(this);
                     var next = div.next();
                     if (next.prop("tagName") == "DIV" && next.prop("class") == "img-box"){
-					    if (tempList.indexOf(div) < 0 || tempList.indexOf(next) < 0)
+						var div_id = div.get(0);
+						var next_id = next.get(0);
+					    if (!isDomExistInArray(tempList, div_id) && !isDomExistInArray(tempList, next_id))
 						{
-							tempList.push(div);
-							tempList.push(next);
-							dolist.push(div);
+							tempList.push(div_id);
+							tempList.push(next_id);
+							dolist.push({box1: div, box2: next,});
 						}
                     }
                 });
 
+				// For row-images
 				$.each(dolist, function(index, value){
-					var v1 = value;
-					var v2 = value.next();
+					var v1 = value.box1;
+					var v2 = value.box2;
 
 					var p = $('<div class="row"></div>');
 					var p1 = $('<div class="col-md-6 col-xs-6"></div>');
@@ -124,6 +135,7 @@
 					p2.append(v2);
 				})
 				
+				// Add more tag after first paragraph
 				$("p:first", nodes).after("<!--more-->");
                 
 
